@@ -1,0 +1,54 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Make MRVA repo list from a GitHub code search",
+            "type": "shell",
+            "command": "mrva-repos.sh",
+            "args": [
+                "${input:mrvaListName}",
+                "${input:codeSearchQuery}",
+                "${input:codeSearchLanguage}",
+                "${workspaceFolder}"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "Debug env",
+            "type": "shell",
+            "command": "env",
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        }
+    ],
+    "inputs": [
+        {
+            "id": "mrvaListName",
+            "type": "promptString",
+            "description": "Name to give the MRVA repo list"
+        },
+        {
+            "id": "codeSearchQuery",
+            "type": "promptString",
+            "description": "Code search query string"
+        },
+        {
+            "id": "codeSearchLanguage",
+            "type": "promptString",
+            "description": "Code language files to search"
+        }
+    ]
+} 
