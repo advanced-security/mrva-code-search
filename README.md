@@ -27,3 +27,7 @@ It's currently only tested on MacOS, but should work on Linux, if the path hardc
 6. Enter the name, query, and language of the search at the prompts
 7. The script will edit the `databases.json` in your workspace to add/append to the MRVA repo list for any matching results, and automatically select it
 8. Use MRVA with the new list!
+
+## Notes
+
+See the [LICENSE](LICENSE), [CHANGELOG](CHANGELOG.md), [CONTRIBUTING](CONTRIBUTING.md), [SECURITY](SECURITY.md), [SUPPORT](SUPPORT.md) and [PRIVACY](PRIVACY.md) files for more information.
