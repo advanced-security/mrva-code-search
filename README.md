@@ -4,7 +4,7 @@
 
 Auto-create [Multi-Repo Variant Analysis (MRVA)](https://github.blog/2023-03-09-multi-repository-variant-analysis-a-powerful-new-way-to-perform-security-research-across-github/) repository lists.
 
-This script can be used with a [Task](https://code.visualstudio.com/docs/editor/tasks) in [VSCode](https://code.visualstudio.com/) to trigger a GitHub Code Search and populate a repository list in your open workspace.
+This script can be used with a [Task](https://code.visualstudio.com/docs/editor/tasks) in [VSCode](https://code.visualstudio.com/) to trigger a [GitHub Code Search](https://docs.github.com/en/rest/search?apiVersion=2022-11-28#search-code) and populate a repository list in your open workspace.
 
 It relies on the [GitHub CLI](https://cli.github.com/) command line tool, and the [VSCode CodeQL extension](https://marketplace.visualstudio.com/items?itemName=GitHub.vscode-codeql).
 
@@ -37,10 +37,15 @@ It's currently only tested on MacOS, but should work on Linux, if the path hardc
 
 ## Known issues
 
-- the GitHub API can return different results for the same query. Try re-running the query to fill in more repos
+- it uses the [old GitHub code search via the API](https://docs.github.com/en/rest/search?apiVersion=2022-11-28#search-code), so queries cannot use regex
+- the GitHub API can return different results for the same query at different times. Try re-running the query to fill in more repos
 - the GitHub API uses paging. The `gh api` command doesn't support paging, as far as we know, so the script only gets the first 100 results
-- this is subject to changes in the MRVA functionality of the CodeQL extension for VSCode, and so may break without warning
-- this depends on the GitHub API and so is subject to the same rate limits as any other use of it
+- may break without warning if the MRVA functionality in the CodeQL extension changes
+- depends on the GitHub API and so is subject to the same rate limits as any other use of it
+- requires a login shell to pick up the `PATH` from your `.bashrc` or `.zshrc` (see above)
+- untested on Linux, but should work with a minor change to the shell script
+- untested on Windows (it uses Bash, so will work in the WSL, but not natively)
+- the `tasks.json` must be manually edited in your VSCode User settings (see above)
 
 ## Notes
 
