@@ -6,7 +6,7 @@ Auto-create [Multi-Repo Variant Analysis (MRVA)](https://github.blog/2023-03-09-
 
 This script can be used with a [Task](https://code.visualstudio.com/docs/editor/tasks) in [VSCode](https://code.visualstudio.com/) to trigger a [GitHub Code Search](https://docs.github.com/en/rest/search?apiVersion=2022-11-28#search-code) and populate a repository list in your open workspace.
 
-It relies on the [GitHub CLI](https://cli.github.com/) command line tool, and the [VSCode CodeQL extension](https://marketplace.visualstudio.com/items?itemName=GitHub.vscode-codeql).
+It relies on the [GitHub CLI](https://cli.github.com/) command line tool, the [VSCode CodeQL extension](https://marketplace.visualstudio.com/items?itemName=GitHub.vscode-codeql) and [`jq`](https://stedolan.github.io/jq/).
 
 It's currently only tested on MacOS, but should work on Linux, if the path hardcoded in the script is changed.
 
@@ -18,6 +18,7 @@ It's currently only tested on MacOS, but should work on Linux, if the path hardc
 - MacOS (or Linux, with a minor change to the shell script)
 - the [GitHub CLI](https://cli.github.com/) command line tool
 - a [GitHub account](https://github.com/), authenticated with `gh auth login`
+- [`jq`](https://stedolan.github.io/jq/), the JSON CLI tool
 - [VSCode](https://code.visualstudio.com/)
 - [VSCode CodeQL extension](https://marketplace.visualstudio.com/items?itemName=GitHub.vscode-codeql)
 
