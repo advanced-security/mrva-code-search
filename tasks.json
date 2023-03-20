@@ -4,12 +4,24 @@
         {
             "label": "Make MRVA repo list from a GitHub code search",
             "type": "shell",
-            "command": "mrva-repos.sh",
+            "command": "mrva-code-search",
             "args": [
-                "${input:mrvaListName}",
-                "${input:codeSearchQuery}",
-                "${input:codeSearchLanguage}",
-                "${workspaceFolder}"
+                {
+                    "value": "${input:mrvaListName}",
+                    "quoting": "strong"
+                },
+                {
+                    "value": "${input:codeSearchQuery}",
+                    "quoting": "strong"
+                },
+                {
+                    "value": "${input:codeSearchLanguage}",
+                    "quoting": "strong"
+                },
+                {
+                    "value": "${workspaceFolder}",
+                    "quoting": "strong"
+                }
             ],
             "group": {
                 "kind": "build",
