@@ -17,20 +17,21 @@ It's currently only tested on MacOS, but should work on Linux, if the path hardc
 - Bash
 - MacOS (or Linux, with a minor change to the shell script)
 - the [GitHub CLI](https://cli.github.com/) command line tool
-- a [GitHub account](https://github.com/), authenticated with `gh auth login`
+- a [GitHub account](https://github.com/), authenticated to `github.com` with `gh auth login`
 - [`jq`](https://stedolan.github.io/jq/), the JSON CLI tool
-- [VSCode](https://code.visualstudio.com/)
+- [VSCode](https://code.visualstudio.com/), the IDE
 - [VSCode CodeQL extension](https://marketplace.visualstudio.com/items?itemName=GitHub.vscode-codeql)
 
 ## Usage
 
 1. Clone this repository
 2. Merge the `tasks.json` entries into your VSCode User settings (e.g. "Tasks: Open User Tasks" in the command palette)
+    - on MacOS: `~/Library/Application Support/Code/User/tasks.json`
 3. In your VSCode `settings.json` make your shell in the terminal a login shell (to pick up your `.bashrc` or `.zshrc` - for the `PATH`) with one of:
-    - `"terminal.integrated.shellArgs.osx": ["-l"]`
-    - `"terminal.integrated.shellArgs.linux": ["-l"]`
+    - on MacOS: `"terminal.integrated.shellArgs.osx": ["-l"]`
+    - on Linux: `"terminal.integrated.shellArgs.linux": ["-l"]`
     If you don't do this, `PATH` won't be set correctly and the script won't be found
-4. Add `mrva-repos.sh` to your `PATH`
+4. Add the path of the `mrva-code-search` script to your `PATH`
 5. Run the `Make MRVA repo list from a GitHub code search` task from the VSCode build tasks menu
 6. Enter the name, query, and language of the search at the prompts
 7. The script will edit the `databases.json` in your workspace to add/append to the MRVA repo list for any matching results, and automatically select it
