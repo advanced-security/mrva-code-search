@@ -4,7 +4,7 @@
 
 Auto-create [Multi-Repo Variant Analysis (MRVA)](https://github.blog/2023-03-09-multi-repository-variant-analysis-a-powerful-new-way-to-perform-security-research-across-github/) repository lists.
 
-This script can be used with a [Task](https://code.visualstudio.com/docs/editor/tasks) in [VSCode](https://code.visualstudio.com/) to trigger a [GitHub Code Search](https://docs.github.com/en/rest/search?apiVersion=2022-11-28#search-code) and populate a repository list in your open workspace.
+This `mrva-code-search` script can be used with a [Task](https://code.visualstudio.com/docs/editor/tasks) in [VSCode](https://code.visualstudio.com/) to trigger a [GitHub Code Search](https://docs.github.com/en/rest/search?apiVersion=2022-11-28#search-code) and populate a repository list in your open workspace.
 
 It relies on the [GitHub CLI](https://cli.github.com/) command line tool, the [VSCode CodeQL extension](https://marketplace.visualstudio.com/items?itemName=GitHub.vscode-codeql) and [`jq`](https://stedolan.github.io/jq/).
 
