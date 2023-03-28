@@ -12,6 +12,19 @@ It's currently only tested on MacOS, but should work on Linux, if the path hardc
 
 > This is an _unofficial_ tool created by Field Security Services, and is not officially supported by GitHub.
 
+## Common problems
+
+- the current code search API doesn't support regex:
+  - don't use regex in your query
+- the code search doesn't return anything at all
+  - don't put the `language:` qualifier in your query
+  - check the [GitHub status page](https://www.githubstatus.com/) for any known issues
+- the code search API doesn't return what the UI does
+  - yes
+  - re-run the same search a few times to try to populate more results
+- the repositories can't have CodeQL run against them: `The following repositories can't be analyzed because they don't currently have a CodeQL database available for the selected language.`
+  - unfortunately, there isn't a workaround for this, other than patience
+
 ## Requirements
 
 - Bash
@@ -31,10 +44,12 @@ It's currently only tested on MacOS, but should work on Linux, if the path hardc
     - on MacOS: `"terminal.integrated.shellArgs.osx": ["-l"]`
     - on Linux: `"terminal.integrated.shellArgs.linux": ["-l"]`
     If you don't do this, `PATH` won't be set correctly and the script won't be found
+
+    You can instead hardcode the full path of the script into the `tasks.json` file
 4. Add the path of the `mrva-code-search` script to your `PATH`
 5. Run the `Make MRVA repo list from a GitHub code search` task from the VSCode build tasks menu
 6. Enter the name, query, and language of the search at the prompts
-7. The script will edit the `databases.json` in your workspace to add/append to the MRVA repo list for any matching results, and automatically select it
+7. The script will edit the `databases.json` in your workspace to add/append to the named MRVA repo list using any matching results, and automatically select it as that active list
 8. Use MRVA with the new list!
 
 ## Known issues
