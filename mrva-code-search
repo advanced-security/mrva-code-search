@@ -2,11 +2,9 @@
 
 set -euo pipefail
 
-workspace_storage_path_mac="$HOME/Library/Application Support/Code/User/workspaceStorage"
-
 # make sure we have the right args, we need 4
-if [ $# -ne 4 ]; then
-    echo "Usage: $0 <name of repo list> <query> <language> <workspace>"
+if [ $# -lt 4 ]; then
+    echo "Usage: $0 \"<name of repo list>\" \"<query>\" <language> <vscode workspace path> [<workspace storage path>]"
     exit 1
 fi
 
@@ -18,13 +16,31 @@ workspace_path=$4
 
 # check the name, query, language and workspace_path variables are non-empty
 if [ -z "$name" ] || [ -z "$query" ] || [ -z "$language" ] || [ -z "$workspace_path" ]; then
-    echo "Usage: $0 <name of repo list> <query> <language> <workspace>"
-    echo "All arguments must be non-empty"
+    echo "Usage: $0 <name of repo list> <query> <language> <vscode workspace path> [<workspace storage path>]"
+    echo "The first four arguments must be non-empty. Don't use a 'language:' part in the query."
     exit 1
 fi
 
-# check we have gh and jq installed
-if ! command -v gh &> /dev/null; then
+# check the workspace path exists, or use defaults for Mac/Linux
+if [ $# -lt 5 ]; then
+    workspace_storage_path_fragment="Code/User/workspaceStorage"
+    workspace_storage_path_mac="Library/Application Support"
+    workspace_storage_path_linux=".config"
+
+    if [ -d "$HOME/$workspace_storage_path_mac/$workspace_storage_path_fragment" ]; then
+        workspace_storage_path="$HOME/$workspace_storage_path_mac/$workspace_storage_path_fragment"
+    elif [ -d "$HOME/$workspace_storage_path_linux/$workspace_storage_path_fragment" ]; then
+        workspace_storage_path="$HOME/$workspace_storage_path_linux/$workspace_storage_path_fragment"
+    else
+        echo "Could not find workspace storage path: specify it as the 5th argument"
+        exit 1
+    fi
+else
+    workspace_storage_path=$5
+fi
+
+# check we have curl and jq installed
+if ! command -v curl &> /dev/null; then
     echo "gh could not be found"
     exit 1
 fi
@@ -34,51 +50,96 @@ if ! command -v jq &> /dev/null; then
     exit 1
 fi
 
-# check we are auth'd to GitHub in gh
-if ! gh auth status -h github.com &> /dev/null; then
-    echo "gh is not auth'd to GitHub.com"
+# check we have a GITHUB_TOKEN set
+if [ -z "${GITHUB_TOKEN}" ]; then
+    echo "Please set the GITHUB_TOKEN environment variable to a GitHub personal access token with the 'repo' scope"
     exit 1
 fi
 
 # do the search on github
 do_query() {
+    echo -n "Searching for repos matching '$1' in '$2'"
+
     # url escape the query and language
     query=$(echo -n "$1" | jq -sRr @uri)
     language=$(echo -n "$2" | jq -sRr @uri)
+
     declare -i repo_limit=1000
     declare -i repo_count=0
     declare -i new_repo_count=0
     declare -i per_page=100
-    declare -i max_pages=2
-    declare -i page=0
+    declare -i total_pages=2
+    declare -i max_pages=20
+    declare -i page=1
     declare new_repos
     declare all_repos
-    declare -i sleep_time=6
-
-    echo -n "Searching for repos matching '${query}' in '${language}'"
+    declare -i sleep_time=15
+    declare -i total_count=0
 
     # get the first 1000+delta matching repos
-    # stop at max_pages (to avoid triggering secondary rate limiting)
-    while [[ $page -lt $max_pages && $repo_count -lt $repo_limit ]]
+    # stop at max_pages so we don't wait around forever trying to reach a limit we're never going to hit
+    while [[ $page -lt $total_pages && $page -lt $max_pages && $repo_count -lt $repo_limit ]]
     do
-        new_repos=$(gh api -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "/search/code?q=${query}+language%3a${language}&per_page=${per_page}&page=${page}" | jq '[.items[].repository.full_name] | unique')
+        set +e
+        response_json=$(curl --no-progress-meter -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/search/code?q=${query}+language%3a${language}&per_page=${per_page}&page=${page}" 2> /dev/null)
+        set -e
+        # see if response has a "message" field - if so, there's an error
+        if echo "${response_json}" | jq -e '.message' &> /dev/null; then
+            message="$(echo "${response_json}" | jq -e '.message')"
+            # back off if we hit a secondary rate limit
+            if [[ "$message" == '"You have exceeded a secondary rate limit. Please wait a few minutes before you try again."' ]]; then
+                sleep_time=$((sleep_time * 2))
+                sleep "${sleep_time}"
+                continue
+            # stop if we ran out of results
+            elif [[ "$message" == '"Only the first 1000 search results are available"' ]]; then
+                break
+            else
+                echo
+                echo "Error: ${message}"
+                exit 1
+            fi
+        fi
+
+        # if we're on page 1, grab the total expected, and work out how many pages we'll need to get all the results
+        if [ $page -eq 1 ]; then
+            total_count=$(echo "${response_json}" | jq '.total_count')
+            total_pages=$((total_count / per_page + 1))
+            echo " (hits: ${total_count})"
+        fi
+
+        new_repos=$(echo "${response_json}"| jq '[.items[].repository.full_name] | unique')
         new_repo_count=$(echo "${new_repos}" | jq length)
+
+        # stop if we didn't get any results on this page
+        if [ $new_repo_count -eq 0 ]; then
+            break
+        fi
+
         all_repos=$(echo "${all_repos}" "${new_repos}" | jq -s add | jq unique)
         repo_count=$(echo "${all_repos}" | jq length)
-        page=$((page + 1))
-        echo -n "; ${page}: ${new_repo_count}/${repo_count}"
+
+        # return to start of line and clear it
+        echo -en "\r                "
+        # go back to normal text, not bold
+        echo -en "\r\033[1m${repo_count}\033[0m repos found"
+
+        # wait for a bit before the next request
         sleep "${sleep_time}"
+        page=$((page + 1))
     done
+
+    echo
 
     export repo_json="$all_repos"
 }
 
 # find the first matching workspace in the vscode-codeql extension settings
 # if we don't find one, try the parent directory, and so on
-workspace_storage_path=""
+workspace_storage=""
 
-while [ -z "$workspace_storage_path" ] && [ -n "$workspace_path" ]; do
-    workspace_storage_path=$(set -euo pipefail; find "${workspace_storage_path_mac}" -type f -name "workspace.json" -exec grep -l "${workspace_path}" {} \; | head -n 1)
+while [ -z "$workspace_storage" ] && [ -n "$workspace_path" ]; do
+    workspace_storage=$(set -euo pipefail; find "${workspace_storage_path}" -type f -name "workspace.json" -exec grep -l "${workspace_path}" {} \; | head -n 1)
     workspace_path=$(dirname "$workspace_path")
 done
 
@@ -103,7 +164,29 @@ echo "Workspace storage path: ${workspace_storage_path}"
 
 if [ -n "$workspace_storage_path" ]; then
     declare repo_json
-    do_query "${query}" "${language}"
+    # do_query "${query}" "${language}"
+
+    # HERE doc for testing, use EOF as sep
+    repo_json=$(cat << EOF
+    [
+        "github/test1",
+        "github/test2",
+        "github/test3",
+        "github/test4",
+        "github/test5",
+        "github/test6",
+        "github/test7",
+        "github/test8",
+        "github/test9",
+        "github/test10",
+        "github/test11",
+        "github/test12",
+        "github/test13",
+        "github/test14",
+        "github/test15"
+    ]
+EOF
+)
 
     # get the databases.json file path
     databases_json_path=$(dirname "$workspace_storage_path")/GitHub.vscode-codeql/databases.json
@@ -132,26 +215,45 @@ if [ -n "$workspace_storage_path" ]; then
 EOF
     fi
 
+    echo "$databases_json_path"
+
     # get the databases.json file contents
     databases_json=$(cat "$databases_json_path")
+
+    echo "$databases_json"
 
     # insert the list of repos into the databases.json file
     # if an entry with a matching name already exists in the JSON, add any new ones
     # otherwise, create a new entry
     # write out the whole JSON file with the new entry inserted
-    if [ "$(set -euo pipefail; echo "$databases_json" | jq --arg name "$name" '.databases.variantAnalysis.repositoryLists[] | select(.name == $name)')" != "" ]; then
-        json_query='(.databases.variantAnalysis.repositoryLists[] | select(.name == $name).repositories) |= (. + $repos | unique)'
-    else
-        json_query='.databases.variantAnalysis.repositoryLists += [{"name": $name, "repositories": $repos}]'
-    fi
 
-    databases_json=$(set -euo pipefail; echo "$databases_json" | jq --arg name "$name" --argjson repos "$repo_json" "$json_query")
+    # bash array of 10, 100 and 1000
+    declare -a list_names=(10 100 1000)
+
+    for limit in "${list_names[@]}"; do
+        echo "Limit: ${limit}"
+
+        if [ "$(set -euo pipefail; echo "$databases_json" | jq --arg name "${name}_${limit}" '.databases.variantAnalysis.repositoryLists[] | select(.name == $name)')" != "" ]; then
+            echo "Appending"
+            json_query="(.databases.variantAnalysis.repositoryLists[] | select(.name == \$name).repositories) |= (. + \$repos | unique | .[0:${limit}])"
+        else
+            echo "New list"
+            json_query=".databases.variantAnalysis.repositoryLists += [{\"name\": \$name, \"repositories\": \$repos}]"
+        fi
+
+        repo_json_limited=$(set -euo pipefail; echo "$repo_json" | jq ".[0:${limit}]")
+
+        databases_json=$(set -euo pipefail; echo "$databases_json" | jq --arg name "${name}_${limit}" --argjson repos "$repo_json_limited" "$json_query")
+    done
 
     # set our MRVA list as the selected list
-    databases_json=$(set -euo pipefail; echo "$databases_json" | jq --arg name "$name" '.selected = {"kind": "variantAnalysisUserDefinedList", "listName": $name}')
+    databases_json=$(set -euo pipefail; echo "$databases_json" | jq --arg name "$name-10" '.selected = {"kind": "variantAnalysisUserDefinedList", "listName": $name}')
+
+    echo "$databases_json"
 
     # write the databases.json file
     echo "$databases_json" > "$databases_json_path"
+    echo "Wrote to ${databases_json_path}"
     echo "Done"
 else
     echo "Could not find workspace storage path for workspace ${workspace_path}" >&2
