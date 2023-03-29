@@ -225,7 +225,7 @@ EOF
     done
 
     # set our MRVA list as the selected list
-    databases_json=$(set -euo pipefail; echo "$databases_json" | jq --arg name "$name-10" '.selected = {"kind": "variantAnalysisUserDefinedList", "listName": $name}')
+    databases_json=$(set -euo pipefail; echo "$databases_json" | jq --arg name "${name}_10" '.selected = {"kind": "variantAnalysisUserDefinedList", "listName": $name}')
 
     echo "$databases_json"
 
