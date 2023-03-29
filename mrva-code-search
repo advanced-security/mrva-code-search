@@ -40,9 +40,38 @@ if ! gh auth status -h github.com &> /dev/null; then
     exit 1
 fi
 
-# url escape the query and language
-query=$(echo "$query" | jq -sRr @uri)
-language=$(echo "$language" | jq -sRr @uri)
+# do the search on github
+do_query() {
+    # url escape the query and language
+    query=$(echo -n "$1" | jq -sRr @uri)
+    language=$(echo -n "$2" | jq -sRr @uri)
+    declare -i repo_limit=1000
+    declare -i repo_count=0
+    declare -i new_repo_count=0
+    declare -i per_page=100
+    declare -i max_pages=2
+    declare -i page=0
+    declare new_repos
+    declare all_repos
+    declare -i sleep_time=6
+
+    echo -n "Searching for repos matching '${query}' in '${language}'"
+
+    # get the first 1000+delta matching repos
+    # stop at max_pages (to avoid triggering secondary rate limiting)
+    while [[ $page -lt $max_pages && $repo_count -lt $repo_limit ]]
+    do
+        new_repos=$(gh api -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "/search/code?q=${query}+language%3a${language}&per_page=${per_page}&page=${page}" | jq '[.items[].repository.full_name] | unique')
+        new_repo_count=$(echo "${new_repos}" | jq length)
+        all_repos=$(echo "${all_repos}" "${new_repos}" | jq -s add | jq unique)
+        repo_count=$(echo "${all_repos}" | jq length)
+        page=$((page + 1))
+        echo -n "; ${page}: ${new_repo_count}/${repo_count}"
+        sleep "${sleep_time}"
+    done
+
+    export repo_json="$all_repos"
+}
 
 # find the first matching workspace in the vscode-codeql extension settings
 # if we don't find one, try the parent directory, and so on
@@ -52,6 +81,8 @@ while [ -z "$workspace_storage_path" ] && [ -n "$workspace_path" ]; do
     workspace_storage_path=$(set -euo pipefail; find "${workspace_storage_path_mac}" -type f -name "workspace.json" -exec grep -l "${workspace_path}" {} \; | head -n 1)
     workspace_path=$(dirname "$workspace_path")
 done
+
+echo "Workspace storage path: ${workspace_storage_path}"
 
 # insert the list of repos into the GitHub.vscode-codeql/databases.json file in the workspace storage
 # {
@@ -71,13 +102,11 @@ done
 # }
 
 if [ -n "$workspace_storage_path" ]; then
-    # do the search on github
-    repo_json=$(set -euo pipefail; gh api -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "/search/code?q=${query}+language:${language}" | jq '[.items[].repository.full_name] | unique')
+    declare repo_json
+    do_query "${query}" "${language}"
 
     # get the databases.json file path
     databases_json_path=$(dirname "$workspace_storage_path")/GitHub.vscode-codeql/databases.json
-
-    echo "$databases_json_path"
 
     # if there is no file there, make it ourselves from scratch
     if [ ! -f "$databases_json_path" ]; then
@@ -123,6 +152,7 @@ EOF
 
     # write the databases.json file
     echo "$databases_json" > "$databases_json_path"
+    echo "Done"
 else
     echo "Could not find workspace storage path for workspace ${workspace_path}" >&2
     exit 1
