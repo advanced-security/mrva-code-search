@@ -143,7 +143,7 @@ while [ -z "$workspace_storage" ] && [ -n "$workspace_path" ]; do
     workspace_path=$(dirname "$workspace_path")
 done
 
-echo "Workspace storage path: ${workspace_storage_path}"
+echo "Workspace storage path: ${workspace_storage}"
 
 # insert the list of repos into the GitHub.vscode-codeql/databases.json file in the workspace storage
 # {
@@ -162,34 +162,12 @@ echo "Workspace storage path: ${workspace_storage_path}"
 #   }
 # }
 
-if [ -n "$workspace_storage_path" ]; then
+if [ -n "$workspace_storage" ]; then
     declare repo_json
-    # do_query "${query}" "${language}"
-
-    # HERE doc for testing, use EOF as sep
-    repo_json=$(cat << EOF
-    [
-        "github/test1",
-        "github/test2",
-        "github/test3",
-        "github/test4",
-        "github/test5",
-        "github/test6",
-        "github/test7",
-        "github/test8",
-        "github/test9",
-        "github/test10",
-        "github/test11",
-        "github/test12",
-        "github/test13",
-        "github/test14",
-        "github/test15"
-    ]
-EOF
-)
+    do_query "${query}" "${language}"
 
     # get the databases.json file path
-    databases_json_path=$(dirname "$workspace_storage_path")/GitHub.vscode-codeql/databases.json
+    databases_json_path=$(dirname "$workspace_storage")/GitHub.vscode-codeql/databases.json
 
     # if there is no file there, make it ourselves from scratch
     if [ ! -f "$databases_json_path" ]; then
