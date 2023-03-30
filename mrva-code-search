@@ -209,13 +209,9 @@ EOF
     declare -a list_names=(10 100 1000)
 
     for limit in "${list_names[@]}"; do
-        echo "Limit: ${limit}"
-
         if [ "$(set -euo pipefail; echo "$databases_json" | jq --arg name "${name}_${limit}" '.databases.variantAnalysis.repositoryLists[] | select(.name == $name)')" != "" ]; then
-            echo "Appending"
             json_query="(.databases.variantAnalysis.repositoryLists[] | select(.name == \$name).repositories) |= (. + \$repos | unique | .[0:${limit}])"
         else
-            echo "New list"
             json_query=".databases.variantAnalysis.repositoryLists += [{\"name\": \$name, \"repositories\": \$repos}]"
         fi
 
@@ -226,8 +222,6 @@ EOF
 
     # set our MRVA list as the selected list
     databases_json=$(set -euo pipefail; echo "$databases_json" | jq --arg name "${name}_10" '.selected = {"kind": "variantAnalysisUserDefinedList", "listName": $name}')
-
-    echo "$databases_json"
 
     # write the databases.json file
     echo "$databases_json" > "$databases_json_path"
