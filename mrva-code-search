@@ -41,7 +41,7 @@ fi
 
 # check we have curl and jq installed
 if ! command -v curl &> /dev/null; then
-    echo "gh could not be found"
+    echo "curl could not be found"
     exit 1
 fi
 
