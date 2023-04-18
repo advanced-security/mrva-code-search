@@ -104,6 +104,12 @@ do_query() {
         # if we're on page 1, grab the total expected, and work out how many pages we'll need to get all the results
         if [ $page -eq 1 ]; then
             total_count=$(echo "${response_json}" | jq '.total_count')
+
+            if [ $total_count -eq 0 ]; then
+                echo "No hits found, exiting"
+                exit 0
+            fi
+
             total_pages=$((total_count / per_page + 1))
             echo " (hits: ${total_count})"
         fi
@@ -198,7 +204,7 @@ EOF
     # get the databases.json file contents
     databases_json=$(cat "$databases_json_path")
 
-    echo "$databases_json"
+    # echo "$databases_json"
 
     # insert the list of repos into the databases.json file
     # if an entry with a matching name already exists in the JSON, add any new ones
