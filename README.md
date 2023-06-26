@@ -1,5 +1,7 @@
 # Code Search MRVA
 
+> 🔔 [MRVA in VSCode now has native Code Search](https://github.blog/changelog/2023-06-23-use-github-code-search-to-support-security-research-with-multi-repostiory-variant-analysis-for-codeql-beta/), as of June 23, 2023 🔔
+
 > ℹ️ This is an _unofficial_ tool created by Field Security Services, and is not officially supported by GitHub.
 
 Auto-create [Multi-Repo Variant Analysis (MRVA)](https://github.blog/2023-03-09-multi-repository-variant-analysis-a-powerful-new-way-to-perform-security-research-across-github/) repository lists.
