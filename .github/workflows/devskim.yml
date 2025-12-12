@@ -13,22 +13,26 @@ on:
   schedule:
     - cron: '25 21 * * 4'
 
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
   lint:
     name: DevSkim
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     permissions:
       actions: read
       contents: read
       security-events: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
 
       - name: Run DevSkim scanner
-        uses: microsoft/DevSkim-Action@v1
+        uses: microsoft/DevSkim-Action@4b5047945a44163b94642a1cecc0d93a3f428cc6 # v1.0.16
 
       - name: Upload DevSkim scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: devskim-results.sarif
